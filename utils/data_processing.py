@@ -76,8 +76,6 @@ def get_albums_info(spotify_client,album_ids)->pd.DataFrame:
         'release_date_precision': album['release_date_precision'],
         # List of images with varying sizes
         'images': [image['url'] for image in album['images']] if album['images'] else [],
-        # If else is used to check if genres is not blank
-        'genres': ', '.join(album['genres']) if 'genres' in album else '',
         # Add artist names
         'artists': ', '.join([artist['name'] for artist in album['artists']]),
         # Extract track IDs
