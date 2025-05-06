@@ -117,3 +117,92 @@ def get_tracks_info(spotify_client,track_ids)->pd.DataFrame:
 
     track_data = pd.DataFrame(track_data)
     return track_data
+
+
+def parse_saved_tracks(track_json)->pd.DataFrame:
+    '''
+    Helper function converts json file 
+    into dataframe
+    '''
+    track_data = []
+
+    for item in track_json:
+        track = item['track']
+        album = track['album']
+        # Extract only the main artist
+        artist = track['artists'][0] if track['artists'] else {}
+        # Get function is used ensure
+        # no Errors i.e. Return None if no such key exists
+        track_info = {
+            'track_id': track['id'],
+            'track_name': track['name'],
+            'artist_id': artist.get('id'),
+            'artist_name': artist.get('name'),
+            'album_id': album.get('id'),
+            'album_name': album.get('name'),
+            'release_date': album.get('release_date'),
+            'track_popularity': track.get('popularity'),
+            'explicit': track.get('explicit'),
+            'duration_ms': track.get('duration_ms'),
+            'is_local': track.get('is_local'),
+            'track_url': track['external_urls'].get('spotify'),
+            'preview_url': track.get('preview_url'),
+            'saved_at': item.get('added_at'),
+            'isrc': track['external_ids'].get('isrc')
+        }
+
+        track_data.append(track_info)
+
+    return pd.DataFrame(track_data)
+
+def get_all_saved_tracks(spotify_client)->pd.DataFrame:
+    '''
+    Function that extracts the JSON file containing 
+    track information from users liked and saved songs
+    '''
+    saved_tracks = []
+    limit = 50
+    offset = 0
+    while True:
+        response = spotify_client.current_user_saved_tracks(limit = limit,offset = offset)
+        items = response['items']
+
+        if not items:
+            break
+
+        saved_tracks.extend(items)
+        offset += limit
+        if len(items) < limit:
+            break
+    data = parse_saved_tracks(saved_tracks)
+
+    return data
+
+def get_artist_info(spotify_client,track_data)->pd.DataFrame:
+    '''
+    Function that extracts artist information from 
+    Spotify API using given artist_id in track_data
+    '''
+    artist_id_lst = track_data['artist_id'].unique().tolist()
+    artist_data = []
+
+    # Spotify API only allows up to 50 artist per call
+    for i in range(0,len(artist_id_lst),50):
+        batch = artist_id_lst[i:i+50]
+        artists = spotify_client.artists(batch)['artists']
+
+        for artist in artists:
+            artist_info = {
+                'artist_id': artist['id'],
+                'artist_name': artist['name'],
+                'popularity': artist['popularity'],
+                'followers': artist['followers']['total'],
+                'genres': ', '.join(artist['genres']) if artist['genres'] else '',
+                'external_url': artist['external_urls']['spotify'],
+                'artist_uri': artist['uri'],
+                'images': [image['url'] for image in artist['images']] if 'images' in artist and artist['images'] else []
+            }
+            artist_data.append(artist_info)
+
+    artist_data = pd.DataFrame(artist_data)
+    return artist_data
