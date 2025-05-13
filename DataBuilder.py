@@ -112,10 +112,13 @@ class DataBuilder:
         track_info = get_additional_info(self.tracks,'track',self.client)
         track_merged = self.remove_duplicated_columns(self.tracks,track_info,['track_id'],'inner')
 
+        # Get album information
         track_album_merged = self.remove_duplicated_columns(
             track_merged,self.albums,
             ['album_id'],'left'
             )
+        
+        # Get artist information
         dashboard = self.remove_duplicated_columns(
             track_album_merged,self.artists,
             ['artist_id'],'left'
